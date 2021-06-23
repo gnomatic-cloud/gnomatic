@@ -80,8 +80,8 @@ func (*consulGRPCSocketHook) Name() string {
 func (h *consulGRPCSocketHook) shouldRun() bool {
 	tg := h.alloc.Job.LookupTaskGroup(h.alloc.TaskGroup)
 
-	// we must be in bridge networking and at least one connect sidecar task
-	if !tgFirstNetworkIsBridge(tg) {
+	// we must be in bridge or CNI networking, with at least one connect sidecar task.
+	if !tgFirstNetworkIsBridgeOrCNI(tg) {
 		return false
 	}
 

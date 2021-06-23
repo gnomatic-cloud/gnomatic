@@ -574,8 +574,10 @@ func groupConnectSidecarValidate(g *structs.TaskGroup, s *structs.Service) error
 		return fmt.Errorf("Consul Connect sidecars require exactly 1 network, found %d in group %q", n, g.Name)
 	}
 
-	if g.Networks[0].Mode != "bridge" {
-		return fmt.Errorf("Consul Connect sidecar requires bridge network, found %q in group %q", g.Networks[0].Mode, g.Name)
+  mode := g.Networks[0].Mode
+
+	if mode != "bridge" && !strings.HasPrefix(mode, "cni/") {
+		return fmt.Errorf("Consul Connect sidecar requires a bridge or CNI network, found %q in group %q", g.Networks[0].Mode, g.Name)
 	}
 
 	// We must enforce lowercase characters on group and service names for connect
