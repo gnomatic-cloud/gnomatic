@@ -34,6 +34,22 @@ var (
 		To:     3000,
 		HostIP: "192.168.30.1",
 	}}
+	testConnectNetwork6 = structs.Networks{{
+		Mode:   "bridge",
+		Device: "eth0",
+		IP:     "fd00:99::101",
+		DynamicPorts: []structs.Port{
+			{Label: "healthPort", Value: 23100, To: 23100},
+			{Label: "metricsPort", Value: 23200, To: 23200},
+			{Label: "connect-proxy-redis", Value: 3000, To: 3000},
+		},
+	}}
+	testConnectPorts6 = structs.AllocatedPorts{{
+		Label:  "connect-proxy-redis",
+		Value:  3000,
+		To:     3000,
+		HostIP: "fd00:99::101",
+	}}
 )
 
 func TestConnect_newConnect(t *testing.T) {
@@ -187,6 +203,74 @@ func TestConnect_connectSidecarRegistration(t *testing.T) {
 				{
 					Name:     "Connect Sidecar Listening",
 					TCP:      "192.168.30.1:3000",
+					Interval: "10s",
+				},
+			},
+		}, proxy)
+	})
+}
+
+func TestConnect_connectSidecarRegistrationIpv6(t *testing.T) {
+	ci.Parallel(t)
+
+	redisID := uuid.Generate()
+	allocID := uuid.Generate()
+	info := structs.AllocInfo{
+		AllocID: allocID,
+	}
+
+	t.Run("nil", func(t *testing.T) {
+		sidecarReg, err := connectSidecarRegistration(redisID, info, nil, testConnectNetwork, testConnectPorts)
+		require.NoError(t, err)
+		require.Nil(t, sidecarReg)
+	})
+
+	t.Run("no service port", func(t *testing.T) {
+		_, err := connectSidecarRegistration("unknown-id", info, &structs.ConsulSidecarService{
+			Port: "unknown-label",
+		}, testConnectNetwork6, testConnectPorts6)
+		require.EqualError(t, err, `No port of label "unknown-label" defined`)
+	})
+
+	t.Run("bad proxy", func(t *testing.T) {
+		_, err := connectSidecarRegistration(redisID, info, &structs.ConsulSidecarService{
+			Port: "connect-proxy-redis",
+			Proxy: &structs.ConsulProxy{
+				Expose: &structs.ConsulExposeConfig{
+					Paths: []structs.ConsulExposePath{{
+						ListenerPort: "badPort",
+					}},
+				},
+			},
+		}, testConnectNetwork6, testConnectPorts6)
+		require.EqualError(t, err, `No port of label "badPort" defined`)
+	})
+
+	t.Run("normal", func(t *testing.T) {
+		proxy, err := connectSidecarRegistration(redisID, info, &structs.ConsulSidecarService{
+			Tags: []string{"foo", "bar"},
+			Port: "connect-proxy-redis",
+		}, testConnectNetwork6, testConnectPorts6)
+		require.NoError(t, err)
+		require.Equal(t, &api.AgentServiceRegistration{
+			Tags:    []string{"foo", "bar"},
+			Port:    3000,
+      Address: "fd00:99::101",
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				Config: map[string]interface{}{
+          "bind_address":     "::",
+					"bind_port":        3000,
+					"envoy_stats_tags": []string{"nomad.alloc_id=" + allocID},
+				},
+			},
+			Checks: api.AgentServiceChecks{
+				{
+					Name:         "Connect Sidecar Aliasing " + redisID,
+					AliasService: redisID,
+				},
+				{
+					Name:     "Connect Sidecar Listening",
+          TCP:      "[fd00:99::101]:3000",
 					Interval: "10s",
 				},
 			},
