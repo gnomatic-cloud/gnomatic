@@ -200,11 +200,17 @@ func TestConnect_connectProxy(t *testing.T) {
 	info := structs.AllocInfo{
 		AllocID: allocID,
 	}
+	cMapping := structs.AllocatedPortMapping{
+		Label:  "foo",
+		Value:  2000,
+		To:     2000,
+		HostIP: "192.168.30.1",
+	}
 
 	// If the input proxy is nil, we expect the output to be a proxy with its
 	// config set to default values.
 	t.Run("nil proxy", func(t *testing.T) {
-		proxy, err := connectSidecarProxy(info, nil, 2000, testConnectNetwork)
+		proxy, err := connectSidecarProxy(info, nil, cMapping, testConnectNetwork)
 		require.NoError(t, err)
 		require.Equal(t, &api.AgentServiceConnectProxyConfig{
 			LocalServiceAddress: "",
@@ -230,7 +236,7 @@ func TestConnect_connectProxy(t *testing.T) {
 				}},
 			},
 			Config: nil,
-		}, 2000, testConnectNetwork)
+		}, cMapping, testConnectNetwork)
 		require.EqualError(t, err, `No port of label "badPort" defined`)
 	})
 
@@ -248,7 +254,7 @@ func TestConnect_connectProxy(t *testing.T) {
 				}},
 			},
 			Config: nil,
-		}, 2000, testConnectNetwork)
+		}, cMapping, testConnectNetwork)
 		require.NoError(t, err)
 		require.Equal(t, &api.AgentServiceConnectProxyConfig{
 			LocalServiceAddress: "0.0.0.0",

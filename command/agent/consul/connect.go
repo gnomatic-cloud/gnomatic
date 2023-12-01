@@ -106,7 +106,7 @@ func connectSidecarRegistration(serviceID string, info structs.AllocInfo, css *s
 		return nil, err
 	}
 
-	proxy, err := connectSidecarProxy(info, css.Proxy, cMapping.To, networks)
+	proxy, err := connectSidecarProxy(info, css.Proxy, cMapping, networks)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func connectSidecarRegistration(serviceID string, info structs.AllocInfo, css *s
 	}, nil
 }
 
-func connectSidecarProxy(info structs.AllocInfo, proxy *structs.ConsulProxy, cPort int, networks structs.Networks) (*api.AgentServiceConnectProxyConfig, error) {
+func connectSidecarProxy(info structs.AllocInfo, proxy *structs.ConsulProxy, cMapping structs.AllocatedPortMapping, networks structs.Networks) (*api.AgentServiceConnectProxyConfig, error) {
 	if proxy == nil {
 		proxy = new(structs.ConsulProxy)
 	}
@@ -149,7 +149,7 @@ func connectSidecarProxy(info structs.AllocInfo, proxy *structs.ConsulProxy, cPo
 	return &api.AgentServiceConnectProxyConfig{
 		LocalServiceAddress: proxy.LocalServiceAddress,
 		LocalServicePort:    proxy.LocalServicePort,
-		Config:              connectProxyConfig(proxy.Config, cPort, info),
+		Config:              connectProxyConfig(proxy.Config, cMapping.To, info),
 		Upstreams:           connectUpstreams(proxy.Upstreams),
 		Expose:              expose,
 	}, nil
