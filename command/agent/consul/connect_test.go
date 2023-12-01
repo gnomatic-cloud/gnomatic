@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	sockaddr "github.com/hashicorp/go-sockaddr"
 	"github.com/hashicorp/nomad/ci"
 	"github.com/hashicorp/nomad/helper/pointer"
 	"github.com/hashicorp/nomad/helper/uuid"
@@ -417,7 +418,7 @@ func TestConnect_connectProxyConfig(t *testing.T) {
 			"bind_address":     "0.0.0.0",
 			"bind_port":        42,
 			"envoy_stats_tags": []string{"nomad.alloc_id=test_alloc1"},
-		}, connectProxyConfig(nil, 42, structs.AllocInfo{AllocID: "test_alloc1"}))
+		}, connectProxyConfig(nil, sockaddr.TypeIPv4, 42, structs.AllocInfo{AllocID: "test_alloc1"}))
 	})
 
 	t.Run("pre-existing map", func(t *testing.T) {
@@ -428,7 +429,7 @@ func TestConnect_connectProxyConfig(t *testing.T) {
 			"envoy_stats_tags": []string{"nomad.alloc_id=test_alloc2"},
 		}, connectProxyConfig(map[string]interface{}{
 			"foo": "bar",
-		}, 42, structs.AllocInfo{AllocID: "test_alloc2"}))
+		}, sockaddr.TypeIPv4, 42, structs.AllocInfo{AllocID: "test_alloc2"}))
 	})
 }
 

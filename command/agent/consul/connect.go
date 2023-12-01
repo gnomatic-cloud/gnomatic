@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	sockaddr "github.com/hashicorp/go-sockaddr"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -146,10 +147,15 @@ func connectSidecarProxy(info structs.AllocInfo, proxy *structs.ConsulProxy, cMa
 		return nil, err
 	}
 
+	hostAddr, err := sockaddr.NewIPAddr(cMapping.HostIP)
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.AgentServiceConnectProxyConfig{
 		LocalServiceAddress: proxy.LocalServiceAddress,
 		LocalServicePort:    proxy.LocalServicePort,
-		Config:              connectProxyConfig(proxy.Config, cMapping.To, info),
+		Config:              connectProxyConfig(proxy.Config, hostAddr.Type(), cMapping.To, info),
 		Upstreams:           connectUpstreams(proxy.Upstreams),
 		Expose:              expose,
 	}, nil
@@ -237,11 +243,16 @@ func connectMeshGateway(in structs.ConsulMeshGateway) api.MeshGatewayConfig {
 	return gw
 }
 
-func connectProxyConfig(cfg map[string]interface{}, port int, info structs.AllocInfo) map[string]interface{} {
+func connectProxyConfig(cfg map[string]interface{}, sockAddrType sockaddr.SockAddrType, port int, info structs.AllocInfo) map[string]interface{} {
 	if cfg == nil {
 		cfg = make(map[string]interface{})
 	}
-	cfg["bind_address"] = "0.0.0.0"
+	switch (sockAddrType) {
+	case sockaddr.TypeIPv6:
+		cfg["bind_address"] = "::"
+	case sockaddr.TypeIPv4:
+		cfg["bind_address"] = "0.0.0.0"
+	}
 	cfg["bind_port"] = port
 
 	tags := map[string]string{
