@@ -4,6 +4,8 @@
 package serviceregistration
 
 import (
+	"strings"
+
 	"github.com/hashicorp/nomad/client/allocrunner/taskrunner/interfaces"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/hashicorp/nomad/plugins/drivers"
@@ -83,4 +85,47 @@ func (ws *WorkloadServices) Name() string {
 		return ws.AllocInfo.Task
 	}
 	return "group-" + ws.AllocInfo.Group
+}
+
+// Networks with dynamic addresses obtained via CNI where applicable.
+func (ws *WorkloadServices) DynamicNetworks() structs.Networks {
+	networks := ws.Networks
+
+	if ws.NetworkStatus != nil {
+		for i := range ws.Networks {
+			network := networks[i]
+			if strings.HasPrefix(network.Mode, "cni/") {
+				cniAddress := ws.NetworkStatus.Address
+				network.IP = cniAddress
+			}
+		}
+	}
+
+	return networks
+}
+
+// Ports with dynamic addresses obtained via CNI where applicable.
+func (ws *WorkloadServices) DynamicPorts() structs.AllocatedPorts {
+	ports := ws.Ports
+	cniAddress := ""
+
+	if ws.NetworkStatus != nil {
+		for _, network := range ws.Networks {
+			if strings.HasPrefix(network.Mode, "cni/") {
+				cniAddress = ws.NetworkStatus.Address
+				break
+			}
+		}
+	}
+
+	if cniAddress != "" {
+		for i := range ports {
+			port := &ports[i]
+			if port.HostIP == "127.0.0.1" {
+				port.HostIP = cniAddress
+			}
+		}
+	}
+
+	return ports
 }

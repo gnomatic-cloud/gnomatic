@@ -1026,6 +1026,8 @@ func (c *ServiceClient) serviceRegs(
 		CheckIDs:      make(map[string]struct{}, len(service.Checks)),
 		CheckOnUpdate: make(map[string]string, len(service.Checks)),
 	}
+	networks := workload.DynamicNetworks()
+	ports := workload.DynamicPorts()
 
 	// Service address modes default to auto
 	addrMode := service.AddressMode
@@ -1035,7 +1037,7 @@ func (c *ServiceClient) serviceRegs(
 
 	// Determine the address to advertise based on the mode
 	ip, port, err := serviceregistration.GetAddress(
-		service.Address, addrMode, service.PortLabel, workload.Networks, workload.DriverNetwork, workload.Ports, workload.NetworkStatus)
+		service.Address, addrMode, service.PortLabel, networks, workload.DriverNetwork, ports, workload.NetworkStatus)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get address for service %q: %v", service.Name, err)
 	}
@@ -1051,7 +1053,7 @@ func (c *ServiceClient) serviceRegs(
 	}
 
 	// newConnect returns (nil, nil) if there's no Connect-enabled service.
-	connect, err := newConnect(id, workload.AllocInfo, service.Name, service.Connect, workload.Networks, workload.Ports)
+	connect, err := newConnect(id, workload.AllocInfo, service.Name, service.Connect, networks, ports)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Consul Connect configuration for service %q: %v", service.Name, err)
 	}
