@@ -551,18 +551,29 @@ func groupConnectValidate(g *structs.TaskGroup) error {
 
 func groupConnectUpstreamsValidate(group string, services []*structs.Service) error {
 	listeners := make(map[string]string) // address -> service
+	sockets := make(map[string]string) // socket -> path
 
 	for _, service := range services {
 		if service.Connect.HasSidecar() && service.Connect.SidecarService.Proxy != nil {
 			for _, up := range service.Connect.SidecarService.Proxy.Upstreams {
-				listener := net.JoinHostPort(up.LocalBindAddress, strconv.Itoa(up.LocalBindPort))
-				if s, exists := listeners[listener]; exists {
-					return fmt.Errorf(
-						"Consul Connect services %q and %q in group %q using same address for upstreams (%s)",
-						service.Name, s, group, listener,
-					)
+				if up.LocalBindSocketPath == "" {
+					listener := net.JoinHostPort(up.LocalBindAddress, strconv.Itoa(up.LocalBindPort))
+					if s, exists := listeners[listener]; exists {
+						return fmt.Errorf(
+							"Consul Connect services %q and %q in group %q using same address for upstreams (%s)",
+							service.Name, s, group, listener,
+						)
+					}
+					listeners[listener] = service.Name
+				} else {
+					if s, exists := sockets[up.LocalBindSocketPath]; exists {
+						return fmt.Errorf(
+							"Consul Connect services %q and %q in group %q using same socket path for upstreams (%s)",
+							service.Name, s, group, up.LocalBindSocketPath,
+						)
+					}
+					sockets[up.LocalBindSocketPath] = service.Name
 				}
-				listeners[listener] = service.Name
 			}
 		}
 	}
