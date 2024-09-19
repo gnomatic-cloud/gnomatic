@@ -158,10 +158,13 @@ func (c *cniNetworkConfigurator) cniToAllocNet(res *cni.CNIResult) (*structs.All
 		}
 
 		if iface.Sandbox != "" && len(iface.IPConfigs) > 0 {
+			c.logger.Warn("Reading sandbox interface", "preferIpv6", c.preferIpv6)
 			if c.preferIpv6 {
 				// Assign the first IPv6 address on the interface, if one exists.
 				for _, ipConfig := range iface.IPConfigs {
+					c.logger.Warn("Evaluating sandbox address", "address", ipConfig.IP.String())
 					if ipConfig.IP.To4() == nil {
+						c.logger.Warn("Assigning sandbox address", "address", ipConfig.IP.String())
 						netStatus.Address = ipConfig.IP.String()
 						break
 					}
@@ -170,6 +173,7 @@ func (c *cniNetworkConfigurator) cniToAllocNet(res *cni.CNIResult) (*structs.All
 			if netStatus.Address == "" {
 				// Assign the first IP address on the interface.
 				netStatus.Address = iface.IPConfigs[0].IP.String()
+				c.logger.Warn("Assigning sandbox address fallback", "address", netStatus.Address)
 			}
 			netStatus.InterfaceName = name
 			break
