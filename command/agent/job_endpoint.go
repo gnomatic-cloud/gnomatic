@@ -1411,6 +1411,7 @@ func ApiNetworkResourceToStructs(in []*api.NetworkResource) []*structs.NetworkRe
 			IP:       nw.IP,
 			Hostname: nw.Hostname,
 			MBits:    nw.Megabits(),
+			PreferIpv6: nw.PreferIpv6,
 		}
 
 		if nw.DNS != nil {

@@ -123,6 +123,7 @@ type NetworkResource struct {
 	ReservedPorts []Port     `hcl:"reserved_ports,block"`
 	DynamicPorts  []Port     `hcl:"port,block"`
 	Hostname      string     `hcl:"hostname,optional"`
+	PreferIpv6    bool       `hcl:"prefer_ipv6,optional"`
 
 	// COMPAT(0.13)
 	// XXX Deprecated. Please do not use. The field will be removed in Nomad

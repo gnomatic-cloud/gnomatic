@@ -27,6 +27,7 @@ func ParseNetwork(o *ast.ObjectList) (*api.NetworkResource, error) {
 		"dns",
 		"port",
 		"hostname",
+		"prefer_ipv6",
 	}
 	if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
 		return nil, multierror.Prefix(err, "network ->")

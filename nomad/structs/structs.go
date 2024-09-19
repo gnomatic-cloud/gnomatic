@@ -2886,6 +2886,7 @@ type NetworkResource struct {
 	DNS           *DNSConfig // DNS Configuration
 	ReservedPorts []Port     // Host Reserved ports
 	DynamicPorts  []Port     // Host Dynamically assigned ports
+	PreferIpv6    bool       // Prefer IPv6 networking for service registration
 }
 
 func (n *NetworkResource) Hash() uint32 {
