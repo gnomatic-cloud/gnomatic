@@ -47,26 +47,28 @@ type cniNetworkConfigurator struct {
 	cni                     cni.CNI
 	cniConf                 []byte
 	ignorePortMappingHostIP bool
+	preferIpv6              bool
 
 	rand   *rand.Rand
 	logger log.Logger
 }
 
-func newCNINetworkConfigurator(logger log.Logger, cniPath, cniInterfacePrefix, cniConfDir, networkName string, ignorePortMappingHostIP bool) (*cniNetworkConfigurator, error) {
+func newCNINetworkConfigurator(logger log.Logger, cniPath, cniInterfacePrefix, cniConfDir, networkName string, ignorePortMappingHostIP bool, preferIpv6 bool) (*cniNetworkConfigurator, error) {
 	cniConf, err := loadCNIConf(cniConfDir, networkName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load CNI config: %v", err)
 	}
 
-	return newCNINetworkConfiguratorWithConf(logger, cniPath, cniInterfacePrefix, ignorePortMappingHostIP, cniConf)
+	return newCNINetworkConfiguratorWithConf(logger, cniPath, cniInterfacePrefix, ignorePortMappingHostIP, preferIpv6, cniConf)
 }
 
-func newCNINetworkConfiguratorWithConf(logger log.Logger, cniPath, cniInterfacePrefix string, ignorePortMappingHostIP bool, cniConf []byte) (*cniNetworkConfigurator, error) {
+func newCNINetworkConfiguratorWithConf(logger log.Logger, cniPath, cniInterfacePrefix string, ignorePortMappingHostIP bool, preferIpv6 bool, cniConf []byte) (*cniNetworkConfigurator, error) {
 	conf := &cniNetworkConfigurator{
 		cniConf:                 cniConf,
 		rand:                    rand.New(rand.NewSource(time.Now().Unix())),
 		logger:                  logger,
 		ignorePortMappingHostIP: ignorePortMappingHostIP,
+		preferIpv6:              preferIpv6,
 	}
 	if cniPath == "" {
 		if cniPath = os.Getenv(envCNIPath); cniPath == "" {
@@ -124,7 +126,6 @@ func (c *cniNetworkConfigurator) Setup(ctx context.Context, alloc *structs.Alloc
 	}
 
 	return c.cniToAllocNet(res)
-
 }
 
 // cniToAllocNet converts a CNIResult to an AllocNetworkStatus or returns an
@@ -157,7 +158,19 @@ func (c *cniNetworkConfigurator) cniToAllocNet(res *cni.CNIResult) (*structs.All
 		}
 
 		if iface.Sandbox != "" && len(iface.IPConfigs) > 0 {
-			netStatus.Address = iface.IPConfigs[0].IP.String()
+			if c.preferIpv6 {
+				// Assign the first IPv6 address on the interface, if one exists.
+				for _, ipConfig := range iface.IPConfigs {
+					if ipConfig.IP.To4() == nil {
+						netStatus.Address = ipConfig.IP.String()
+						break
+					}
+				}
+			}
+			if netStatus.Address == "" {
+				// Assign the first IP address on the interface.
+				netStatus.Address = iface.IPConfigs[0].IP.String()
+			}
 			netStatus.InterfaceName = name
 			break
 		}

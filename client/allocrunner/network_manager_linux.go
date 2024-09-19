@@ -182,7 +182,8 @@ func newNetworkConfigurator(log hclog.Logger, alloc *structs.Allocation, config 
 		return &hostNetworkConfigurator{}, nil
 	}
 
-	netMode := strings.ToLower(tg.Networks[0].Mode)
+  network := tg.Networks[0]
+	netMode := strings.ToLower(network.Mode)
 	ignorePortMappingHostIP := config.BindWildcardDefaultHostNetwork
 	if len(config.HostNetworks) > 0 {
 		ignorePortMappingHostIP = false
@@ -190,13 +191,13 @@ func newNetworkConfigurator(log hclog.Logger, alloc *structs.Allocation, config 
 
 	switch {
 	case netMode == "bridge":
-		c, err := newBridgeNetworkConfigurator(log, config.BridgeNetworkName, config.BridgeNetworkAllocSubnet, config.BridgeNetworkHairpinMode, config.CNIPath, ignorePortMappingHostIP)
+		c, err := newBridgeNetworkConfigurator(log, config.BridgeNetworkName, config.BridgeNetworkAllocSubnet, config.BridgeNetworkHairpinMode, config.CNIPath, ignorePortMappingHostIP, network.PreferIpv6)
 		if err != nil {
 			return nil, err
 		}
 		return &synchronizedNetworkConfigurator{c}, nil
 	case strings.HasPrefix(netMode, "cni/"):
-		c, err := newCNINetworkConfigurator(log, config.CNIPath, config.CNIInterfacePrefix, config.CNIConfigDir, netMode[4:], ignorePortMappingHostIP)
+		c, err := newCNINetworkConfigurator(log, config.CNIPath, config.CNIInterfacePrefix, config.CNIConfigDir, netMode[4:], ignorePortMappingHostIP, network.PreferIpv6)
 		if err != nil {
 			return nil, err
 		}

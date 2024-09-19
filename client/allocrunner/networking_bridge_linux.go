@@ -43,7 +43,7 @@ type bridgeNetworkConfigurator struct {
 	logger hclog.Logger
 }
 
-func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange string, hairpinMode bool, cniPath string, ignorePortMappingHostIP bool) (*bridgeNetworkConfigurator, error) {
+func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange string, hairpinMode bool, cniPath string, ignorePortMappingHostIP bool, preferIpv6 bool) (*bridgeNetworkConfigurator, error) {
 	b := &bridgeNetworkConfigurator{
 		bridgeName:  bridgeName,
 		allocSubnet: ipRange,
@@ -59,7 +59,7 @@ func newBridgeNetworkConfigurator(log hclog.Logger, bridgeName, ipRange string, 
 		b.allocSubnet = defaultNomadAllocSubnet
 	}
 
-	c, err := newCNINetworkConfiguratorWithConf(log, cniPath, bridgeNetworkAllocIfPrefix, ignorePortMappingHostIP, buildNomadBridgeNetConfig(*b))
+	c, err := newCNINetworkConfiguratorWithConf(log, cniPath, bridgeNetworkAllocIfPrefix, ignorePortMappingHostIP, preferIpv6, buildNomadBridgeNetConfig(*b))
 	if err != nil {
 		return nil, err
 	}
