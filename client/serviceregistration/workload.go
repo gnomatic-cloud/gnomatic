@@ -121,9 +121,7 @@ func (ws *WorkloadServices) DynamicPorts() structs.AllocatedPorts {
 	if cniAddress != "" {
 		for i := range ports {
 			port := &ports[i]
-			if port.HostIP == "127.0.0.1" {
-				port.HostIP = cniAddress
-			}
+			port.HostIP = cniAddress
 		}
 	}
 
